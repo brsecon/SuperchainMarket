@@ -93,20 +93,32 @@ library LibDiamond {
     function addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         DiamondStorage storage ds = diamondStorage();
-        // Check if facet is already added
-        require(!isFacetAdded(_facetAddress), "LibDiamondCut: Facet already added");
         // Add facet to facetAddresses array if it's not already there
-        ds.facetAddresses.push(_facetAddress);
+        if (!isFacetAdded(_facetAddress)) {
+            ds.facetAddresses.push(_facetAddress);
+        }
+
         // Add function selectors to functionSelectors mapping
-        ds.functionSelectors[_facetAddress] = _functionSelectors;
+        // If facet already exists, append new selectors
+        // Otherwise, assign the new selectors
+        bytes4[] storage existingSelectors = ds.functionSelectors[_facetAddress];
+        uint256 newTotalSelectors = existingSelectors.length + _functionSelectors.length;
+        bytes4[] memory combinedSelectors = new bytes4[](newTotalSelectors);
+
+        for(uint i = 0; i < existingSelectors.length; i++) {
+            combinedSelectors[i] = existingSelectors[i];
+        }
+
         for (uint256 i = 0; i < _functionSelectors.length; i++) {
             bytes4 selector = _functionSelectors[i];
             bytes32 currentFacet = ds.facets[selector];
             require(address(bytes20(currentFacet)) == address(0), "LibDiamondCut: Selector already exists in diamond");
+            combinedSelectors[existingSelectors.length + i] = selector;
             // Add function selector to facets mapping
-            // selectorPosition is the index of the selector in the facetFunctionSelectors.functionSelectors array
-            ds.facets[selector] = bytes20(_facetAddress) | (bytes32(i) << 160);
+            // selectorPosition is the index of the selector in the combinedSelectors array
+            ds.facets[selector] = bytes20(_facetAddress) | (bytes32(existingSelectors.length + i) << 160);
         }
+        ds.functionSelectors[_facetAddress] = combinedSelectors;
     }
 
     /// @dev Replaces existing functions of a facet with new ones.
@@ -230,7 +242,6 @@ library LibDiamond {
         if (_init == address(0)) {
             require(_calldata.length == 0, "LibDiamondCut: _init is address(0) but_calldata is not empty");
         } else {
-            require(_calldata.length > 0, "LibDiamondCut: _calldata is empty but _init is not address(0)");
             // delegatecall _init function call
             (bool success, ) = _init.delegatecall(_calldata);
             require(success, "LibDiamondCut: _init call failed");

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {LibDiamond} from './libraries/LibDiamond.sol';
+import {IDiamondCut} from './interfaces/IDiamondCut.sol';
 
 // Custom errors
 error Diamond__FunctionNotFound(bytes4 _functionSelector);
@@ -37,7 +38,7 @@ contract Diamond {
         // add support for DiamondLoupeFacet -- Not required but more user friendly
         // bytes4(keccak256("facets()")) == 0x7a0ed627
         // bytes4(keccak256("facetFunctionSelectors(address)")) == 0x52ef6b2c
-        // bytes4(keccak256("facetAddresses()")) == 0x00000000  -- this is wrong, selector is 0xcdffacc6
+        // bytes4(keccak256("facetAddresses()")) == 0xcdffacc6
         // bytes4(keccak256("facetAddress(bytes4)")) == 0xadfca15e
         // bytes4(keccak256("supportsInterface(bytes4)")) == 0x01ffc9a7
         // LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
