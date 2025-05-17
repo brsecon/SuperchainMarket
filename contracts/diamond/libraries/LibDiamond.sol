@@ -31,6 +31,8 @@ library LibDiamond {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    /// @dev Sets the contract owner.
+    /// @param _newOwner The address of the new owner.
     function setContractOwner(address _newOwner) internal {
         require(_newOwner != address(0), "LibDiamond: New owner cannot be zero address");
         DiamondStorage storage ds = diamondStorage();
@@ -39,10 +41,13 @@ library LibDiamond {
         emit OwnershipTransferred(previousOwner, _newOwner);
     }
 
+    /// @dev Gets the contract owner.
+    /// @return contractOwner_ The address of the contract owner.
     function contractOwner() internal view returns (address contractOwner_) {
         contractOwner_ = diamondStorage().contractOwner;
     }
 
+    /// @dev Throws an error if an attempt is made to call this function by any account other than the owner.
     function enforceIsContractOwner() internal view {
         require(msg.sender == diamondStorage().contractOwner, "LibDiamond: Must be contract owner");
     }
@@ -53,6 +58,11 @@ library LibDiamond {
     // This is more flexible because it does not have parameter size limits.
     // RECOMMENDED: Add a reentrancy guard (e.g., OpenZeppelin's ReentrancyGuard) to this function
     // to prevent reentrancy attacks, especially due to the _init delegatecall.
+    /// @dev Executes diamondCut operations: Add, Replace, or Remove facets and their functions.
+    ///      It can also initialize state using `_init` and `_calldata`.
+    /// @param _diamondCut An array of FacetCut structs specifying the cut operations.
+    /// @param _init The address of the contract to call for initialization (optional, can be address(0)).
+    /// @param _calldata The data to pass to the initialization call (optional, can be empty).
     function diamondCut(IDiamondCut.FacetCut[] memory _diamondCut, address _init, bytes memory _calldata) internal {
         DiamondStorage storage ds = diamondStorage();
         uint256 originalFacetAddressesLength = ds.facetAddresses.length;
@@ -72,9 +82,14 @@ library LibDiamond {
         }
         emit DiamondCut(_diamondCut, _init, _calldata);
         initializeDiamondCut(_init, _calldata);
-        cleanupDiamondCut(originalFacetAddressesLength);
+        // cleanupDiamondCut(originalFacetAddressesLength); // Audited: Removed as removeFunctions handles cleaning up facetAddresses for emptied facets.
     }
 
+    /// @dev Adds new functions to a facet. 
+    ///      The facet address is added to `ds.facetAddresses` if it's not already there.
+    ///      Function selectors are mapped to the facet address.
+    /// @param _facetAddress The address of the facet to add functions to.
+    /// @param _functionSelectors An array of function selectors to add.
     function addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         DiamondStorage storage ds = diamondStorage();
@@ -94,6 +109,11 @@ library LibDiamond {
         }
     }
 
+    /// @dev Replaces existing functions of a facet with new ones.
+    ///      The facet must already be added.
+    ///      Old function selectors are removed and new ones are added.
+    /// @param _facetAddress The address of the facet to replace functions in.
+    /// @param _functionSelectors An array of new function selectors.
     function replaceFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         DiamondStorage storage ds = diamondStorage();
@@ -116,6 +136,10 @@ library LibDiamond {
         }
     }
 
+    /// @dev Removes functions from a facet. 
+    ///      If all functions of a facet are removed, the facet itself is removed from `ds.facetAddresses`.
+    /// @param _facetAddress The address of the facet to remove functions from.
+    /// @param _functionSelectors An array of function selectors to remove.
     function removeFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         DiamondStorage storage ds = diamondStorage();
@@ -182,6 +206,9 @@ library LibDiamond {
         }
     }
 
+    /// @dev Checks if a facet has already been added to the diamond.
+    /// @param _facetAddress The address of the facet to check.
+    /// @return bool True if the facet is added, false otherwise.
     function isFacetAdded(address _facetAddress) internal view returns (bool) {
         DiamondStorage storage ds = diamondStorage();
         for (uint i = 0; i < ds.facetAddresses.length; i++) {
@@ -196,6 +223,9 @@ library LibDiamond {
     // from the 'diamondCut' function and that '_init' and '_calldata' are fully trusted,
     // as a malicious '_init' contract could take over the diamond or alter its state unexpectedly.
     // Ensure the calling context ('diamondCut') properly restricts access and validates inputs.
+    /// @dev Executes an initialization call using delegatecall if `_init` is not the zero address.
+    /// @param _init The address of the contract to call for initialization.
+    /// @param _calldata The data to pass to the initialization call.
     function initializeDiamondCut(address _init, bytes memory _calldata) internal {
         if (_init == address(0)) {
             require(_calldata.length == 0, "LibDiamondCut: _init is address(0) but_calldata is not empty");
@@ -207,6 +237,10 @@ library LibDiamond {
         }
     }
 
+    /* // Audited: Removed cleanupDiamondCut function.
+    // The removeFunctions internal function already handles removing a facet from ds.facetAddresses
+    // when all of its functions are removed. This makes cleanupDiamondCut redundant
+    // and removing it saves gas.
     function cleanupDiamondCut(uint256 _originalFacetAddressesLength) internal {
         DiamondStorage storage ds = diamondStorage();
         if (ds.facetAddresses.length > _originalFacetAddressesLength) {
@@ -236,4 +270,5 @@ library LibDiamond {
             }
         }
     }
+    */
 } 

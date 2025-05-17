@@ -61,8 +61,12 @@ contract DiamondInit {
         ds.supportedInterfaces[type(IERC165).interfaceId] = true;
         ds.supportedInterfaces[type(IDiamondLoupe).interfaceId] = true;
         ds.supportedInterfaces[type(IERC173).interfaceId] = true; // Diamond sahipliğini destekler
-        ds.supportedInterfaces[type(IERC721Receiver).interfaceId] = true; // ERC721ReceiverFacet eklendiğinde
-        ds.supportedInterfaces[type(IERC1155Receiver).interfaceId] = true; // ERC1155ReceiverFacet eklendiğinde
+        // ds.supportedInterfaces[type(IERC721Receiver).interfaceId] = true; // ERC721ReceiverFacet eklendiğinde
+        // ds.supportedInterfaces[type(IERC1155Receiver).interfaceId] = true; // ERC1155ReceiverFacet eklendiğinde
+        // ÖNEMLİ NOT: IERC721Receiver ve IERC1155Receiver gibi arayüzlerin desteği,
+        // bu arayüzleri implemente eden Facet'ler Diamond'a eklendiği zaman (genellikle diamondCut çağrısının _init parametresiyle
+        // veya Facet eklendikten sonra ayrı bir diamondCut çağrısıyla) ayarlanmalıdır.
+        // Bu, supportsInterface fonksiyonunun yanıltıcı sonuçlar vermesini engeller.
         // Add other interfaces your diamond will support through its facets
         // ÖNEMLİ NOT: Facet eklemeleri (diamondCut) ve bunlara karşılık gelen 
         // ds.supportedInterfaces güncellemeleri genellikle bu init fonksiyonu dışında,
