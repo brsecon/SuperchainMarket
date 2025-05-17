@@ -16,7 +16,6 @@ contract OwnershipFacet is IERC173 {
     /// @notice Transfer ownership of the contract to a new owner
     /// @param _newOwner The address of the new owner
     function transferOwnership(address _newOwner) external override {
-        // Replaced LibDiamond.enforceIsContractOwner() with direct check for custom error
         if (msg.sender != LibDiamond.contractOwner()) {
             revert OwnershipFacet__NotContractOwner();
         }
